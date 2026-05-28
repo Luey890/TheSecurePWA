@@ -38,7 +38,8 @@ def signup():
         password = request.form["password"]
         DoB = request.form["dob"]
         dbHandler.insertUser(username, password, DoB)
-        return render_template("/index.html")
+        return render_template("/success.html", value= username,state="isLoggedIn")
+        #return render_template("/index.html")
     else:
         return render_template("/signup.html")
 
