@@ -4,6 +4,7 @@ from flask import request
 from flask import redirect
 from flask_cors import CORS
 import user_management as dbHandler
+from flask_csp.csp import csp_header
 
 # Code snippet for logging a message
 # app.logger.critical("message")
@@ -11,6 +12,30 @@ import user_management as dbHandler
 app = Flask(__name__)
 # Enable CORS to allow cross-origin requests (needed for CSRF demo in Codespaces)
 CORS(app)
+
+#@app.route('/', methods=['POST', 'GET'])
+#@app.route('/index.html', methods=['GET'])
+@csp_header({
+        "base-uri": "self",
+        "default-src": "'self'",
+        "style-src": "'self' https://fonts.googleapis.com",
+        "font-src": "'self' https://fonts.gstatic.com",
+        "style-src-elem": "'self' https://fonts.googleapis.com",
+        "script-src": "'self'",
+        "script-src-elem": "'self'",
+        "img-src": "'self '",
+        "media-src": "'self'",
+        "font-src": "self",
+        "object-src": "'self'",
+        "child-src": "'self'",
+        "connect-src": "'self'",
+        "worker-src": "'self'",
+        "report-uri": "/csp_report",
+        "frame-ancestors": "'none'",
+        "form-action": "'self'",
+        "base-uri": "'self'",
+        "frame-src": "'none'",
+      }) 
 
 
 @app.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])

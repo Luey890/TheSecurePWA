@@ -2,6 +2,7 @@ import sqlite3 as sql
 import time
 import random
 import os
+import html as html
 
 
 def insertUser(username, password, DoB):
@@ -22,12 +23,13 @@ def retrieveUsers(username, password):
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
     con = sql.connect(db_path)
     cur = con.cursor()
-    cur.execute(f"SELECT * FROM users WHERE username = '{username}'")
+    #cur.execute(f"SELECT * FROM users WHERE username = '{username}'")
+    cur.execute("SELECT * FROM users WHERE username = ?", (username, )) #SQL and Parameter is sent off seperately to the database driver.
     if cur.fetchone() == None:
         con.close()
         return False
     else:
-        cur.execute(f"SELECT * FROM users WHERE password = '{password}'")
+        cur.execute("SELECT * FROM users WHERE password = ?", (password, )) #SQL and Parameter is sent off seperately to the database driver.
         # Plain text log of visitor count as requested by Unsecure PWA management
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         v_path = os.path.join(BASE_DIR, "visitor_log.txt")
@@ -51,7 +53,7 @@ def insertFeedback(feedback):
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
     con = sql.connect(db_path)
     cur = con.cursor()
-    cur.execute(f"INSERT INTO feedback (feedback) VALUES ('{feedback}')")
+    cur.execute("INSERT INTO feedback (feedback) VALUES (?)", (feedback,))
     con.commit()
     con.close()
 
@@ -63,10 +65,11 @@ def listFeedback():
     cur = con.cursor()
     data = cur.execute("SELECT * FROM feedback").fetchall()
     con.close()
-    f_path = os.path.join(BASE_DIR, "success_feedback.html")
+    f_path = os.path.join(BASE_DIR, "templates", "partials", "success_feedback.html")
     f = open(f_path, "w")
     for row in data:
+        safe_feedback = html.escape(row[1])
         f.write("<p>\n")
-        f.write(f"{row[1]}\n")
+        f.write(f"{safe_feedback}\n")
         f.write("</p>\n")
     f.close()

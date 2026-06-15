@@ -3,8 +3,9 @@
    <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta http-equiv="X-UA-Compatible" content="ie=edge" /> 
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://apis.google.com" />
-	<link rel="stylesheet" type="text/css" href="static/css/style.css">
+        <meta http-equiv="Content-Security-Policy"
+       content="base-uri 'self'; default-src 'self'; script-src 'self'; img-src 'self' ; media-src 'self'; font-src 'self'; connect-src 'self'; object-src 'self'; worker-src 'self'; frame-src 'none'; form-action 'self'; manifest-src 'self'"/>
+       <link rel="stylesheet" type="text/css" href="static/css/style.css">
         <title>The Unsecure PWA</title>
         <link rel="manifest" href="static/manifest.json" />
         <link rel="icon" type="image/x-icon" href="static/images/favicon.png" />
@@ -30,6 +31,6 @@
     {% block content %}{% endblock %}
     <script src="static/js/serviceWorker.js"></script>
     <script src="static/js/app.js"></script>
-    <script src="https//getfreebootstrap.ru/bootstrap.js"></script>    
+    <!-- <script src="https//getfreebootstrap.ru/bootstrap.js"></script> -->    
 </body>
 </html>
