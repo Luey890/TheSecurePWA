@@ -2,17 +2,25 @@ from flask import Flask
 from flask import render_template
 from flask import request
 from flask import redirect
+from flask_wtf.csrf import CSRFProtect
 from flask_cors import CORS
 import user_management as dbHandler
 from flask_csp.csp import csp_header
 
 # Code snippet for logging a message
 # app.logger.critical("message")
+csrf = CSRFProtect()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = "UnsecurePWA"
+def csrf_app():
+    app = Flask(__name__)
+    csrf.init_app(app)
+
+
+csrf.init_app(app)
 # Enable CORS to allow cross-origin requests (needed for CSRF demo in Codespaces)
 CORS(app)
-
 #@app.route('/', methods=['POST', 'GET'])
 #@app.route('/index.html', methods=['GET'])
 @csp_header({
@@ -47,9 +55,11 @@ def addFeedback():
         feedback = request.form["feedback"]
         dbHandler.insertFeedback(feedback)
         dbHandler.listFeedback()
+        app.jinja_env.cache.clear()
         return render_template("/success.html", state=True, value="Back")
     else:
         dbHandler.listFeedback()
+        app.jinja_env.cache.clear()
         return render_template("/success.html", state=True, value="Back")
 
 

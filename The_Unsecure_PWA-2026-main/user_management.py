@@ -4,7 +4,6 @@ import random
 import os
 import html as html
 
-
 def insertUser(username, password, DoB):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
