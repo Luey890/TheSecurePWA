@@ -26,6 +26,20 @@
     <input type="submit" class="btn" value="Log In" />
   </div>
 </form>
+<form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+    <label class="label">Email</label>
+      <input class="input" type="text" name="email" placeholder="Email">
+    </div>
+    <div class="field">
+      <p class="control">
+        <button type="submit" class="button is-success">
+          Request verification code
+        </button>
+      </p>
+    </div>
+  </form>
 <!-- User message -->
 {% if msg %}
 <div>{{ msg }}</div>

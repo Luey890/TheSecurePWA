@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 from time import sleep
 from flask import render_template
 import re
+import bcrypt
 
 start_time = datetime.now()
 end_time = start_time + timedelta(milliseconds=5)
@@ -20,9 +21,12 @@ def insertUser(username, password, DoB):
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
     con = sql.connect(db_path)
     cur = con.cursor()
+    bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hash = bcrypt.hashpw(bytes,salt)
     cur.execute(
-        "INSERT INTO users (username,password,dateOfBirth) VALUES (?,?,?)",
-        (username, password, DoB),
+        "INSERT INTO users (username,password,dateOfBirth, salt) VALUES (?,?,?,?)",
+        (username, hash, DoB, salt),
     )
     con.commit()
     con.close()

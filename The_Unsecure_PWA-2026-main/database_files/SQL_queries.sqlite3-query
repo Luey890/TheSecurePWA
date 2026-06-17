@@ -13,3 +13,5 @@
 -- INSERT INTO feedback(feedback) VALUES ("Tempe High School Students WERE HERE!");
 
 DELETE FROM feedback WHERE id > 2;
+
+--ALTER TABLE users ADD COLUMN salt TEXT;--
