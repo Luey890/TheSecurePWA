@@ -1,9 +1,20 @@
+import datetime
 import sqlite3 as sql
 import time
 import random
 import os
 import html as html
+from datetime import date, datetime, timedelta
+from time import sleep
+from flask import render_template
+import re
 
+start_time = datetime.now()
+end_time = start_time + timedelta(milliseconds=5)
+
+
+def is_relative(url):
+  return re.match(r"^\/[^\/\\]", url)
 def insertUser(username, password, DoB):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
@@ -72,3 +83,7 @@ def listFeedback():
         f.write(f"{safe_feedback}\n")
         f.write("</p>\n")
     f.close()
+def authenticate_user (username, password):
+    #authentication to be implemented with random duration and placements of pauses during computation
+    while datetime.now() < end_time:
+        return render_template("/result.html")

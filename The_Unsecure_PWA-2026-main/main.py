@@ -7,6 +7,9 @@ from flask_cors import CORS
 import user_management as dbHandler
 from flask_csp.csp import csp_header
 
+
+
+
 # Code snippet for logging a message
 # app.logger.critical("message")
 csrf = CSRFProtect()
@@ -44,7 +47,6 @@ CORS(app)
         "base-uri": "'self'",
         "frame-src": "'none'",
       }) 
-
 
 @app.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def addFeedback():
