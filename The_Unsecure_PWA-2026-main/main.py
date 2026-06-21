@@ -1,24 +1,44 @@
 import os
-from flask import Flask, session, url_for
+from flask import Flask, app, logging, session, url_for
 from flask import render_template
 from flask import request
 from flask import redirect
 from twilio.rest import Client
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
+from flask import jsonify
+from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+from flask_limiter import Limiter
 import user_management as dbHandler
 from flask_csp.csp import csp_header
+import user_management as sanitiser
+import logging
 
 
-
-
+#logger = logging.getLogger(__name__)
+#logging.basicConfig(filename='security_log.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s')
+if __name__ == '__main__':
+    print (f"Does 'password' meet security requirements: {sanitiser.simple_check_password("password")}" )
+    #print (f"Make <HTML> web safe: {sanitiser.make_web_safe('<html>')}")
+    #print (f"Is 'name@example.com' an email address: {sanitiser.check_email('name@example.com')}")
+    #print (f"Is '123!' an name: {sanitiser.validate_name('123!')}")
+    #print (f"Is '1234567890' a number: {sanitiser.validate_number('1234567890')}")
+    #print ("--PYTHONIC EXCEPTION HANDLING--")
 # Code snippet for logging a message
 # app.logger.critical("message")
-csrf = CSRFProtect()
-
 app = Flask(__name__)
+csrf = CSRFProtect()
+#c = CORS(api)
+#app.config["CORS_HEADERS"] = "Content-Type"
+
 app.config['SECRET_KEY'] = "UnsecurePWA"
+#limiter = Limiter(
+    #get_remote_address,
+    #app=api,
+    #default_limits=["200 per day", "50 per hour"],
+    #storage_uri="memory://",
+#)
 def csrf_app():
     app = Flask(__name__)
     csrf.init_app(app)
@@ -77,6 +97,23 @@ def signup():
         username = request.form["username"]
         password = request.form["password"]
         DoB = request.form["dob"]
+        try:
+            _ = sanitiser.check_password(password).hex()
+            if not sanitiser.simple_check_password(password):
+                raise ValueError("Password does not meet security requirements.")
+        except TypeError:
+            #logger.error(f"Type errors for password:{password}")
+            print(f"TypeError has been logged for password:{password}")
+            #print("TypeError has been logged")
+            return render_template("/signup.html", error="Invalid password type. Please enter a valid password.")
+        except ValueError as inst:
+            #logger.error(f"Value errors for password:{password} with {inst.args}")
+            print(f"ValueError has been logged for password:{password} with {str(inst)}")
+            return render_template("/signup.html", error=f"Not a valid password because it has {str(inst)}. Please enter a valid password.")
+        except Exception as inst:
+            #logger.error(f"Unexpected error for password:{password} with {type(inst)}")
+            print(f"Unexpected error has been logged for password:{password} with {type(inst)}")
+            return render_template("/signup.html", error=f"An unexpected error occurred. Please enter a valid password.")
         dbHandler.insertUser(username, password, DoB)
         return render_template("/success.html", value= username,state="isLoggedIn")
         #return render_template("/index.html")
@@ -143,12 +180,18 @@ def home():
     elif request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
+        try:
+            if not isinstance(username, str) or not isinstance(password, str):
+                raise TypeError("Username and password must be strings.")
+        except TypeError as inst:
+            #logger.error(f"Type errors for username:{username} or password:{password} with {inst.args}")
+            return render_template("/index.html", msg="Invalid input type. Please enter valid credentials.")
         isLoggedIn = dbHandler.retrieveUsers(username, password)
         if isLoggedIn:
             dbHandler.listFeedback()
             return render_template("/success.html", value=username, state=isLoggedIn)
         else:
-            return render_template("/index.html")
+            return render_template("/index.html", msg="Invalid username or password.")
     else:
         return render_template("/index.html")
 
