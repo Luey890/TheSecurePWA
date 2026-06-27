@@ -4,6 +4,7 @@ from flask import render_template
 from flask import request
 from flask import redirect
 from twilio.rest import Client
+import time 
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect
 from flask import jsonify
@@ -39,6 +40,7 @@ app.config['SECRET_KEY'] = "UnsecurePWA"
     #default_limits=["200 per day", "50 per hour"],
     #storage_uri="memory://",
 #)
+app.config['MAX_LOGIN_ATTEMPTS'] = 3
 def csrf_app():
     app = Flask(__name__)
     csrf.init_app(app)
@@ -178,6 +180,16 @@ def home():
         msg = request.args.get("msg", "")
         return render_template("/index.html", msg=msg)
     elif request.method == "POST":
+        current_time = time.time()
+        end_time = 60
+        if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
+            lockedout = session.get("lockedout", 0)
+            time_since_lockedout = current_time - lockedout
+            if time_since_lockedout < end_time:
+             return render_template("/index.html", msg=f"Too many login attempts. Please try again later.")
+            else:
+                session["login_attempts"] = 0
+                session.pop("lockedout", None)
         username = request.form["username"]
         password = request.form["password"]
         try:
@@ -188,10 +200,17 @@ def home():
             return render_template("/index.html", msg="Invalid input type. Please enter valid credentials.")
         isLoggedIn = dbHandler.retrieveUsers(username, password)
         if isLoggedIn:
+            session["login_attempts"] = 0 # Reset login attempts to 0 upon a successful login
+            session.pop("lockedout", None) # Reset lockedout status upon a successful login
             dbHandler.listFeedback()
             return render_template("/success.html", value=username, state=isLoggedIn)
         else:
-            return render_template("/index.html", msg="Invalid username or password.")
+            session["login_attempts"] = session.get("login_attempts", 0 ) + 1
+            if session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
+                session["lockedout"] = current_time
+                return render_template("/index.html", msg="Too many login attempts. Please try again later.")
+            remaining_attempts = app.config["MAX_LOGIN_ATTEMPTS"] - session.get("login_attempts")
+            return render_template("/index.html", msg=f"Invalid username or password. You have {remaining_attempts} attempts remaining.")
     else:
         return render_template("/index.html")
 

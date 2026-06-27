@@ -1,4 +1,5 @@
 import datetime
+from datetime import datetime, timedelta
 import sqlite3 as sql
 import time
 import random
@@ -69,33 +70,68 @@ def check_password(password: str) -> bytes:
     return password.encode()
 
 def retrieveUsers(username, password):
+    #start_time = datetime.now()
+    #duration = random.randint(150,300)
+    #end_time = start_time + timedelta(milliseconds=duration)
+    #authentication = False
+    #sleep(random.randint(80, 90) / 1000)
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
     con = sql.connect(db_path)
     cur = con.cursor()
     #cur.execute(f"SELECT * FROM users WHERE username = '{username}'")
     cur.execute("SELECT * FROM users WHERE username = ?", (username, )) #SQL and Parameter is sent off seperately to the database driver.
-    if cur.fetchone() == None:
-        con.close()
-        return False
+    row = cur.fetchone()
+    con.close()
+    if row is None:
+      return False
+    db_hashed_password = row[2]
+
+
+    if isinstance(db_hashed_password, str):
+           db_hashed_password = db_hashed_password.encode('utf-8')
+
+    if bcrypt.checkpw(password.encode('utf-8'), db_hashed_password):
+           return True
+    #if authentication:
+       # v_path = os.path.join(BASE_DIR, "visitor_log.txt")
+        #if os.path.exists(v_path):
+            #with open(v_path) as file:
+               # content = file.read().strip()
+                #number = int(content) if content.isdigit() else 0
+                #number += 1
+                #file.seek(0)
+                #file.write(str(number))
+                #file.truncate()
+    #while datetime.now() < end_time:
+        #sleep(0.01)
+    #if authentication:
+            #return render_template("/result.html", state=True)
+    #else: 
+            #return render_template("/result.html", state=False)
     else:
-        cur.execute("SELECT * FROM users WHERE password = ?", (password, )) #SQL and Parameter is sent off seperately to the database driver.
+        #cur.execute(f"SELECT * FROM users WHERE password = '{password}'")
+        #cur.execute("SELECT * FROM users WHERE password = ?", (password, )) #SQL and Parameter is sent off seperately to the database driver.
         # Plain text log of visitor count as requested by Unsecure PWA management
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         v_path = os.path.join(BASE_DIR, "visitor_log.txt")
-        with open(v_path) as file:
+        try:
+          with open(v_path) as file:
             number = int(file.read().strip())
-            number += 1
+        except FileNotFoundError:
+            number = 0
+        number += 1
         with open(v_path, 'w') as file:
             file.write(str(number))
         # Simulate response time of heavy app for testing purposes
         time.sleep(random.randint(80, 90) / 1000)
-        if cur.fetchone() == None:
-            con.close()
-            return False
-        else:
-            con.close()
-            return True
+        return False
+        #if cur.fetchone() == None:
+            #con.close()
+            #return False
+        #else:
+            #con.close()
+            #return True
 
 
 def insertFeedback(feedback):
@@ -103,6 +139,7 @@ def insertFeedback(feedback):
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
     con = sql.connect(db_path)
     cur = con.cursor()
+    #cur.execute(f"INSERT INTO feedback (feedback) VALUES ('{feedback}')")
     cur.execute("INSERT INTO feedback (feedback) VALUES (?)", (feedback,))
     con.commit()
     con.close()
