@@ -1,4 +1,5 @@
 import os
+from urllib import response
 from flask import Flask, app, logging, session, url_for
 from flask import render_template
 from flask import request
@@ -32,7 +33,6 @@ app = Flask(__name__)
 csrf = CSRFProtect()
 #c = CORS(api)
 #app.config["CORS_HEADERS"] = "Content-Type"
-
 app.config['SECRET_KEY'] = "UnsecurePWA"
 #limiter = Limiter(
     #get_remote_address,
@@ -41,9 +41,9 @@ app.config['SECRET_KEY'] = "UnsecurePWA"
     #storage_uri="memory://",
 #)
 app.config['MAX_LOGIN_ATTEMPTS'] = 3
-def csrf_app():
-    app = Flask(__name__)
-    csrf.init_app(app)
+#def csrf_app():
+    #app = Flask(__name__)
+    #csrf.init_app(app)
 
 
 csrf.init_app(app)
@@ -51,30 +51,58 @@ csrf.init_app(app)
 CORS(app)
 #@app.route('/', methods=['POST', 'GET'])
 #@app.route('/index.html', methods=['GET'])
-@csp_header({
-        "base-uri": "self",
-        "default-src": "'self'",
-        "style-src": "'self' https://fonts.googleapis.com",
-        "font-src": "'self' https://fonts.gstatic.com",
-        "style-src-elem": "'self' https://fonts.googleapis.com",
-        "script-src": "'self'",
-        "script-src-elem": "'self'",
-        "img-src": "'self '",
-        "media-src": "'self'",
-        "font-src": "self",
-        "object-src": "'self'",
-        "child-src": "'self'",
-        "connect-src": "'self'",
-        "worker-src": "'self'",
-        "report-uri": "/csp_report",
-        "frame-ancestors": "'none'",
-        "form-action": "'self'",
-        "base-uri": "'self'",
-        "frame-src": "'none'",
-      }) 
+@app.after_request
+def security_headers(response):
+        response.headers['Content-Security-Policy'] = ("base-uri self;"
+        "default-src 'self';"
+        "style-src 'self' https://fonts.googleapis.com;"
+        "font-src 'self' https://fonts.gstatic.com;"
+        "style-src-elem 'self' https://fonts.googleapis.com;"
+        "script-src 'self';"
+        "script-src-elem 'self';"
+        #"img-src 'self ';"
+        "media-src 'self';"
+        "font-src 'self';"
+        "object-src 'self';"
+        "child-src 'self';"
+        "connect-src 'self';"
+        "worker-src 'self';"
+        "report-uri /csp_report;"
+        "frame-ancestors 'none';"
+        "form-action 'self';"
+        "base-uri 'self';"
+        "frame-src 'none';"
+)
+        return response
+            
+        
+        
 
-@app.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+#@csp_header({
+        #"base-uri": "self",
+        #"default-src": "'self'",
+        #"style-src": "'self' https://fonts.googleapis.com",
+        #"font-src": "'self' https://fonts.gstatic.com",
+        #"style-src-elem": "'self' https://fonts.googleapis.com",
+        #"script-src": "'self'",
+        #"script-src-elem": "'self'",
+        #"img-src": "'self '",
+        #"media-src": "'self'",
+        #"font-src": "self",
+        #"object-src": "'self'",
+       # "child-src": "'self'",
+       # "connect-src": "'self'",
+       # "worker-src": "'self'",
+        #"report-uri": "/csp_report",
+       # "frame-ancestors": "'none'",
+       # "form-action": "'self'",
+       # "frame-src": "'none'",
+      #}) 
+
+@app.route("/feedback", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def addFeedback():
+    if not session.get("isloggedin"):
+        return redirect(url_for("home"))
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
         return redirect(url, code=302)
@@ -83,11 +111,11 @@ def addFeedback():
         dbHandler.insertFeedback(feedback)
         dbHandler.listFeedback()
         app.jinja_env.cache.clear()
-        return render_template("/success.html", state=True, value="Back")
+        return render_template("/success.html", state=True, value="Back", username=session.get("username"))
     else:
         dbHandler.listFeedback()
         app.jinja_env.cache.clear()
-        return render_template("/success.html", state=True, value="Back")
+        return render_template("/success.html", state=True, value="Back", username=session.get("username"))
 
 
 @app.route("/signup.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
@@ -117,7 +145,9 @@ def signup():
             print(f"Unexpected error has been logged for password:{password} with {type(inst)}")
             return render_template("/signup.html", error=f"An unexpected error occurred. Please enter a valid password.")
         dbHandler.insertUser(username, password, DoB)
-        return render_template("/success.html", value= username,state="isLoggedIn")
+        session["isloggedin"] = True
+        session["username"] = username
+        return render_template("/success.html", value= username,state="isLoggedIn", username=username)
         #return render_template("/index.html")
     else:
         return render_template("/signup.html")
@@ -180,11 +210,13 @@ def home():
         msg = request.args.get("msg", "")
         return render_template("/index.html", msg=msg)
     elif request.method == "POST":
-        current_time = time.time()
-        end_time = 60
+        current_time = time.time() # The current time in seconds when the user logins.
+        end_time = 60 # The time in seconds that the user will be locked out for.
+        # If failed login attempts exceed the maximum limit, lock the user out for the specific time and record the time since the user was locked out.
         if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
             lockedout = session.get("lockedout", 0)
             time_since_lockedout = current_time - lockedout
+            # If the user is still locked out, return the error message. Otherwise, reset the login attempts and lockedout status so the user is not locked out anymore.
             if time_since_lockedout < end_time:
              return render_template("/index.html", msg=f"Too many login attempts. Please try again later.")
             else:
@@ -197,13 +229,18 @@ def home():
                 raise TypeError("Username and password must be strings.")
         except TypeError as inst:
             #logger.error(f"Type errors for username:{username} or password:{password} with {inst.args}")
-            return render_template("/index.html", msg="Invalid input type. Please enter valid credentials.")
+            return render_template("/index.html", msg="Invalid input type. Please enter valid credentials.") # Return an error message to the user 
         isLoggedIn = dbHandler.retrieveUsers(username, password)
+        # If the user is logged in, set the session variables and reset the login attempts and lockedout status. Else, increment the login attempts and check if the user has exceeded the maximum login attempts. If the user has exceeded it then lock the user out. 
         if isLoggedIn:
+            session.clear() # Clear the old cookie completely to prevent session fixation attacks
+            session["isloggedin"] = True # Set the session variable to indicate that the user has logged in successfully.
+            session["username"] = username # Set the session variable to store the username of the logged in user. 
             session["login_attempts"] = 0 # Reset login attempts to 0 upon a successful login
             session.pop("lockedout", None) # Reset lockedout status upon a successful login
-            dbHandler.listFeedback()
-            return render_template("/success.html", value=username, state=isLoggedIn)
+            dbHandler.listFeedback() # Show the feedback after successfully logging in.
+            #return render_template("/success.html", value=username, state=isLoggedIn) 
+            return redirect(url_for("successful_login")) # Redirect the user to the login page after successfully logging in
         else:
             session["login_attempts"] = session.get("login_attempts", 0 ) + 1
             if session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
@@ -213,9 +250,23 @@ def home():
             return render_template("/index.html", msg=f"Invalid username or password. You have {remaining_attempts} attempts remaining.")
     else:
         return render_template("/index.html")
+@app.route("/success.html", methods= ["POST", "GET", "PUT", "PATCH", "DELETE"])
+@app.route("/successful_login")
+def successful_login():
+    # Check if the user is logged in before redirecting to the feedback page. If the user is not logged in, redirect them to the login page. Prevents users from accessing the feedback page without logging in first.
+    if not session.get("isloggedin"): 
+        return render_template("/index.html") 
+    return render_template("/success.html", value=session.get("username"), state=True)
+# Logout route to clear the session data and log the user out
+@app.route("/logout", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+def logout():
+     session.clear() # Clear the session data to log the user out
+     session.modified = True
+     return render_template("/index.html") # Redirect the user to the login page after logging out
 
 
 if __name__ == "__main__":
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     app.run(debug=True, host="0.0.0.0", port=5000)
+    #ssl_context="adhoc"

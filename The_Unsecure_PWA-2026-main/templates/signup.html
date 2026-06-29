@@ -7,7 +7,7 @@
     </div>
 {% endif %}
 <form action="/signup.html" method="POST" class="box">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="input__wrapper">
         <input type="text" name="username" placeholder="Username" class="input__field">
     </div>            
