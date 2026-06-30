@@ -1,6 +1,6 @@
 import os
 from urllib import response
-from flask import Flask, app, logging, session, url_for
+from flask import Flask, app, logging, session, url_for, make_response
 from flask import render_template
 from flask import request
 from flask import redirect
@@ -34,6 +34,11 @@ csrf = CSRFProtect()
 #c = CORS(api)
 #app.config["CORS_HEADERS"] = "Content-Type"
 app.config['SECRET_KEY'] = "UnsecurePWA"
+app.config.update (
+    #SESSION_COOKIE_SECURE = True,
+    #SESSION_COOKIE_HTTPONLY = True,
+    SESSION_COOKIE_SAMESITE = 'Lax',
+)
 #limiter = Limiter(
     #get_remote_address,
     #app=api,
@@ -53,7 +58,7 @@ CORS(app)
 #@app.route('/index.html', methods=['GET'])
 @app.after_request
 def security_headers(response):
-        response.headers['Content-Security-Policy'] = ("base-uri self;"
+        response.headers['Content-Security-Policy'] = ("base-uri 'self';"
         "default-src 'self';"
         "style-src 'self' https://fonts.googleapis.com;"
         "font-src 'self' https://fonts.gstatic.com;"
@@ -73,6 +78,9 @@ def security_headers(response):
         "base-uri 'self';"
         "frame-src 'none';"
 )
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '-1'
         return response
             
         
@@ -99,7 +107,7 @@ def security_headers(response):
        # "frame-src": "'none'",
       #}) 
 
-@app.route("/feedback", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+@app.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def addFeedback():
     if not session.get("isloggedin"):
         return redirect(url_for("home"))
@@ -111,20 +119,25 @@ def addFeedback():
         dbHandler.insertFeedback(feedback)
         dbHandler.listFeedback()
         app.jinja_env.cache.clear()
-        return render_template("/success.html", state=True, value="Back", username=session.get("username"))
+        #return render_template("/success.html", state=True, value="Back", username=session.get("username"))
+        return render_template("/success.html", state=True, value="Back")
     else:
         dbHandler.listFeedback()
         app.jinja_env.cache.clear()
         return render_template("/success.html", state=True, value="Back", username=session.get("username"))
+        #return redirect(url_for("successful_login"))
 
 
 @app.route("/signup.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def signup():
+    # Check if user is already logged in to prevent the user from accessing the signup page unless they logout.
+    #if request.method == "GET" and session.get("isloggedin") is True:
+        #return redirect(url("successful_login"))
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
         return redirect(url, code=302)
     if request.method == "POST":
-        username = request.form["username"]
+        username = request.form["username"] 
         password = request.form["password"]
         DoB = request.form["dob"]
         try:
@@ -136,7 +149,7 @@ def signup():
             print(f"TypeError has been logged for password:{password}")
             #print("TypeError has been logged")
             return render_template("/signup.html", error="Invalid password type. Please enter a valid password.")
-        except ValueError as inst:
+        except ValueError as inst: 
             #logger.error(f"Value errors for password:{password} with {inst.args}")
             print(f"ValueError has been logged for password:{password} with {str(inst)}")
             return render_template("/signup.html", error=f"Not a valid password because it has {str(inst)}. Please enter a valid password.")
@@ -145,6 +158,7 @@ def signup():
             print(f"Unexpected error has been logged for password:{password} with {type(inst)}")
             return render_template("/signup.html", error=f"An unexpected error occurred. Please enter a valid password.")
         dbHandler.insertUser(username, password, DoB)
+        session.clear() # Clear the old cookie to prevent session fixation attacks.
         session["isloggedin"] = True
         session["username"] = username
         return render_template("/success.html", value= username,state="isLoggedIn", username=username)
@@ -241,6 +255,7 @@ def home():
             dbHandler.listFeedback() # Show the feedback after successfully logging in.
             #return render_template("/success.html", value=username, state=isLoggedIn) 
             return redirect(url_for("successful_login")) # Redirect the user to the login page after successfully logging in
+        
         else:
             session["login_attempts"] = session.get("login_attempts", 0 ) + 1
             if session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
@@ -249,20 +264,24 @@ def home():
             remaining_attempts = app.config["MAX_LOGIN_ATTEMPTS"] - session.get("login_attempts")
             return render_template("/index.html", msg=f"Invalid username or password. You have {remaining_attempts} attempts remaining.")
     else:
+        session.clear()
         return render_template("/index.html")
-@app.route("/success.html", methods= ["POST", "GET", "PUT", "PATCH", "DELETE"])
-@app.route("/successful_login")
+
+@app.route("/successful_login", methods=["GET"])
 def successful_login():
     # Check if the user is logged in before redirecting to the feedback page. If the user is not logged in, redirect them to the login page. Prevents users from accessing the feedback page without logging in first.
-    if not session.get("isloggedin"): 
-        return render_template("/index.html") 
+    if session.get("isloggedin") is not True:  
+        return redirect(url_for("home"))
     return render_template("/success.html", value=session.get("username"), state=True)
 # Logout route to clear the session data and log the user out
 @app.route("/logout", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def logout():
      session.clear() # Clear the session data to log the user out
-     session.modified = True
-     return render_template("/index.html") # Redirect the user to the login page after logging out
+     #session.modified = True 
+     response = make_response(redirect(url_for("home")))
+     #return redirect(url_for("home")) # Redirect the user to the login page after logging out
+     response.set_cookie('session', '', expires=0, max_age=0)  
+     return response
 
 
 if __name__ == "__main__":

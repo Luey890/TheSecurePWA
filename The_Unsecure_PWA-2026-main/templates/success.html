@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 {% block content %}
 <h1>Welcome {{ value }}!</h1>
-<form action="/feedback" method="post" class="box">
+<form action="/success.html" method="post" class="box">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <div class="input__wrapper">
     <input style="height:100px;vertical-align:top" type="text" name="feedback" id="feedback" maxlength="64" placeholder="Enter your feedback here" class="input__field" required/>
@@ -17,12 +17,4 @@
         
       {% include "partials/success_feedback.html" %} 
       </div>
-  <div class="container">
-      <h1 class="title">
-        {{email}}'s Profile
-      </h1>
-      <h2 class="subtitle">
-        Thanks for verifying your email! 
-      </h2>
-    </div>
 {% endblock %}
