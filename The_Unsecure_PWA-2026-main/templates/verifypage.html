@@ -3,28 +3,53 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <title>Verify your account</title>
   </head>
   <body>
     <h1 class="title">
-      Please verify your account {{email}}
+      Two-Factor Authentication Setup for {{ username }}
     </h1>
+
     {% if error %}
-      <p class=error><strong>Error:</strong> {{ error }}
+      <p class="error"><strong>Error:</strong> {{ error }}</p>
     {% endif %}
+
+    <p>1. Scan this QR code with an Authenticator App (Google Authenticator, Authy, etc.):</p>
+    
+    <div id="qrcode"></div>
+
+    <p>Or manually enter this secret key into your app:</p>
+    <p class="secret-box">{{ Twofactor_key }}</p>
+
+    <hr>
+
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
       <div class="field">
-        <label class="label">Enter the code sent to your email.</label>
-          <input class="input" type="text" name= "verificationcode" placeholder="verificationcode">
+        <label class="label">2. Enter the 6-digit code from your app:</label>
+        <p>
+          <input class="input" type="text" name="verificationcode" placeholder="123456" autocomplete="off" required>
         </p>
       </div>
+      
       <div class="field">
         <p class="control">
-          <button type="submit" class="is-success", value = "submitcode">
+          <button type="submit" class="is-success" value="submitcode">
             Submit Verification Code
           </button>
         </p>
       </div>
     </form>
-  </body>
+    <script>
+      var qrUrl = "{{ qr_url }}";
+      if (qrUrl) {
+          new QRCode(document.getElementById("qrcode"), {
+              text: qrUrl,
+              width: 180,
+              height: 180
+          });
+      }
+    </script>
 </html>

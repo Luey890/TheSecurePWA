@@ -32,7 +32,7 @@ def insertUser(username, password, DoB):
     con.commit()
     con.close()
 def simple_check_password(password: str) -> bool:
-    if not issubclass(type(password), str):
+    if not isinstance(password, str):
         return False
     if len(password) < 8:
         return False
@@ -50,7 +50,7 @@ def simple_check_password(password: str) -> bool:
         return False
     return True    
 def check_password(password: str) -> bytes:
-    if not issubclass(type(password), str):
+    if not isinstance(password, str):
         raise TypeError("Expected a string")
     if len(password) < 8:
         raise ValueError("less than 8 characters")
@@ -133,7 +133,18 @@ def retrieveUsers(username, password):
             #con.close()
             #return True
 
-
+#def getUSERkey(username):
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "database_files", "database.db")
+    con = sql.connect(db_path)
+    cur = con.cursor()
+    cur.execute("SELECT Twofactor_key FROM users WHERE username = ?", (username, ))
+    row = cur.fetchone()
+    con.close()
+    
+    if row:
+        return row[0] 
+    return None
 def insertFeedback(feedback):
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(BASE_DIR, "database_files", "database.db")
