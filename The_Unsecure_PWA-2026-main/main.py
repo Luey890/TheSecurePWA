@@ -99,8 +99,8 @@ def addFeedback():
 @api.route("/signup.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def signup():
     # Check if user is already logged in to prevent the user from accessing the signup page unless they logout.
-    #if request.method == "GET" and session.get("isloggedin") is True:
-        #return redirect(url("successful_login"))
+    if request.method == "GET" and session.get("isloggedin") is True:
+        return redirect(url_for("successful_login"))
     # If the request method is GET and a URL parameter is provided, redirect the user to that URL. This allows for dynamic redirection based on user input.
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
