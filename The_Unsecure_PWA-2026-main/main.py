@@ -5,7 +5,7 @@ from flask_session import Session
 #from flask import render_template
 #from flask import request
 #from flask import redirect
-from twilio.rest import Client
+#from twilio.rest import Client
 import time 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -19,22 +19,7 @@ import user_management as dbHandler
 #from flask_csp.csp import csp_header
 import user_management as sanitiser
 
-#import logging
-
-
-#logger = logging.getLogger(__name__)
-#logging.basicConfig(filename='security_log.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s')
-#if __name__ == '__main__':
-   # print (f"Does 'password' meet security requirements: {sanitiser.simple_check_password("password")}" )
-    #print (f"Make <HTML> web safe: {sanitiser.make_web_safe('<html>')}")
-    #print (f"Is 'name@example.com' an email address: {sanitiser.check_email('name@example.com')}")
-    #print (f"Is '123!' an name: {sanitiser.validate_name('123!')}")
-    #print (f"Is '1234567890' a number: {sanitiser.validate_number('1234567890')}")
-    #print ("--PYTHONIC EXCEPTION HANDLING--")
-# Code snippet for logging a message
-# app.logger.critical("message")
-
-api = Flask(__name__)
+api = Flask(__name__) # Create a flask application 
 csrf = CSRFProtect() # Initialise CSRF protection for the Flask progressive web application to prevent cross-site request forgery attacks by ensuring that requests made to the server are from authenticated users.
 #c = CORS(api)
 #app.config["CORS_HEADERS"] = "Content-Type"
@@ -89,30 +74,31 @@ def security_headers(response):
         "base-uri 'self';"
         "frame-src 'none';"
 )
+         # Prevents caching of sensitive information in the browser to protect against unauthorised access to sensitive data by ensuring that the browser does not store any cached copies of the progressive web application's pages or resources.
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0' 
         return response
-
 @api.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def addFeedback():
     # If user is not logged in then redirect them back to the homepage to prevent users from being able to access the feedback page without authentication.
     if not session.get("isloggedin"):
         return redirect(url_for("home"))
+    # If the request method is GET and a URL parameter is provided, redirect the user to that URL. This allows for dynamic redirection based on user input.
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
         return redirect(url, code=302)
+    # If the request method is POST, retrieve the feedback from the form data, insert it into the database, and clear the Jinja2 template cache to ensure that the latest feedback is displayed. This then renders the feedback page and the username of the logged-in user.
     if request.method == "POST":
         feedback = request.form["feedback"]
-        dbHandler.insertFeedback(feedback)
-        dbHandler.listFeedback()
-        api.jinja_env.cache.clear()
+        dbHandler.insertFeedback(feedback) # Insert the feedback into the database using the insertFeedback function from the dbHandler module.
+        dbHandler.listFeedback() # List the feedback from the database using the listFeedback function from the dbHandler module. 
+        api.jinja_env.cache.clear() # Clear the Jinja2 template cache to ensure that the latest feedback is displayed on the feedback page.
         #return render_template("/success.html", state=True, value="Back", username=session.get("username"))
         return render_template("/success.html", state=True, value="Back")
     else:
-        dbHandler.listFeedback()
-        api.jinja_env.cache.clear()
-        return render_template("/success.html", state=True, value="Back", username=session.get("username"))
+        dbHandler.listFeedback() # List the feedback from the database using the listFeedback function from the dbHandler module
+        api.jinja_env.cache.clear() # Clear the Jinja2 template cache to ensure that the latest feedback is displayed on the feedback page.
+        return render_template("/success.html", state=True, value="Back", username=session.get("username")) 
         #return redirect(url_for("successful_login"))
 
 
@@ -121,9 +107,11 @@ def signup():
     # Check if user is already logged in to prevent the user from accessing the signup page unless they logout.
     #if request.method == "GET" and session.get("isloggedin") is True:
         #return redirect(url("successful_login"))
+    # If the request method is GET and a URL parameter is provided, redirect the user to that URL. This allows for dynamic redirection based on user input.
     if request.method == "GET" and request.args.get("url"):
         url = request.args.get("url", "")
         return redirect(url, code=302)
+    # If the request method is POST, retrieve the username, password, and date of birth from the form data, validate the password using the sanitiser module, and insert the user into the database.
     if request.method == "POST":
         #username = request.form["username"] 
         #password = request.form["password"]
@@ -132,36 +120,30 @@ def signup():
         password = request.form.get("password")
         DoB = request.form.get("dob")
         try:
-            _ = sanitiser.check_password(password).hex() 
-            if not sanitiser.simple_check_password(password):
+            _ = sanitiser.check_password(password).hex() # Check if the password is valid and can be converted to a hexadecimal representation. If not, raise a ValueError in order to prevent brute-force attacks and broken authentication.
+            if not sanitiser.simple_check_password(password): # Check if the password meets the security requirements using the simple_check_password function from the sanitiser module. If not, raise a ValueError to prevent brute-force attacks and broken authentication by ensuring that the password is complex enough to resist common attacks.
                 raise ValueError("Password does not meet security requirements.")
         except TypeError:
             #logger.error(f"Type errors for password:{password}")
-            print(f"TypeError has been logged for password:{password}")
+            print(f"TypeError has been logged for password:{password}") # Log the TypeError for debugging purposes.
             #print("TypeError has been logged")
-            return render_template("/signup.html", error="Invalid password type. Please enter a valid password.")
+            return render_template("/signup.html", error="Invalid password type. Please enter a valid password.") # Return an error message to the user if the password is not a string to prevent brute-force attacks and broken authentication by ensuring that the password is a valid string.
         except ValueError as inst: 
             #logger.error(f"Value errors for password:{password} with {inst.args}")
-            print(f"ValueError has been logged for password:{password} with {str(inst)}")
-            return render_template("/signup.html", error=f"Not a valid password because it has {str(inst)}. Please enter a valid password.")
+            print(f"ValueError has been logged for password:{password} with {str(inst)}") # Log the ValueError for debugging purposes. 
+            return render_template("/signup.html", error=f"Not a valid password because it has {str(inst)}. Please enter a valid password.") # Return an error message to the user if the password does not meet the security requirements to prevent brute-force attacks and broken authentication by ensuring that the password is complex enough to resist common attacks.
         except Exception as inst:
             #logger.error(f"Unexpected error for password:{password} with {type(inst)}")
-            print(f"Unexpected error has been logged for password:{password} with {type(inst)}")
-            return render_template("/signup.html", error=f"An unexpected error occurred. Please enter a valid password.")
-        #Twofactor_key = pyotp.random_base32() # Generate two-factor authentication key for the user
-        dbHandler.insertUser(username, password, DoB,) #Twofactor_key=Twofactor_key)
-        #provisioning_url = pyotp.totp.TOTP(Twofactor_key).provisioning_uri(name=username, issuer_name="2fa App")
-        api.session_interface.regenerate(session)
-        #session.clear() # Clear the old cookie to prevent session fixation attacks.
-        #return render_template("verifypage.html", Twofactor_key=Twofactor_key, qr_url=provisioning_url, username=username)
-    #else:
-      #return render_template("/signup.html")
-        session["isloggedin"] = True
-        session["username"] = username
-        return render_template("/success.html", value= username,state="isLoggedIn", username=username)
-        return render_template("/index.html")
+            print(f"Unexpected error has been logged for password:{password} with {type(inst)}") # Log the unexpected error for debugging purposes.
+            return render_template("/signup.html", error=f"An unexpected error occurred. Please enter a valid password.") # Return an error message to the user if an unexpected error occurred to prevent brute-force attacks and broken authentication by ensuring that the password is valid.
+        dbHandler.insertUser(username, password, DoB,) # Insert the user into the database using the insertUser function from the dbHandler module.
+        api.session_interface.regenerate(session) # Regenerate the session ID to prevent session fixation attacks by creating a new session ID upon successful signup.
+        session["isloggedin"] = True # Set the session variable to indicate that the user has logged in successfully after signing up. This prevents the user from having to log in again after signing up.
+        session["username"] = username # Set the session variable to store the username of the logged in user after signing up. This allows the application to personalise the user experience by displaying the username on the feedback page.
+        return render_template("/success.html", value= username,state="isLoggedIn", username=username) # Render the success page after signing up successfully.
+        #return render_template("/index.html")
     else:
-        return render_template("/signup.html")
+        return render_template("/signup.html") # Render the signup page if the request method is not POST to allow the user to sign up for an account.
     
         
 
@@ -170,24 +152,14 @@ def signup():
 @limiter.limit("5 per minute", methods=["POST"])
 def home():
     current_time = time.time() # The current time in seconds when the user logins.
-    end_time = 60 # The time in seconds that the user will be locked out for.
-    # Simple Dynamic menu
-    #if request.method == "GET":
-        #if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
-            #lockedout = session.get("lockedout", 0)
-            #if time_since_lockedout < end_time:
-             #return redirect(url_for("home", msg=f"Too many login attempts. Please try again later."))
-            #else:
-               # session["login_attempts"] = 0
-               # session.pop("lockedout", None)
-            #url = request.args.get("url", "")
-            #if url and url not in ["/", "/index.html"]:
-              #  return redirect(url, code=302)
+    end_time = 180 # The time in seconds that the user will be locked out for.
+    # If the request method is GET and a URL parameter is provided, redirect the user to that URL. This allows for dynamic redirection based on user input.
     if request.method == "GET" and request.args.get("url"):
             url = request.args.get("url", "")
             return redirect(url, code=302)
-    is_locked_out = False
-    remaining_lockedouttime = 0
+    is_locked_out = False # If the user is locked out, this variable will be set to True in order to prevent the user from logging in until the lockout period has expired. This is used to prevent brute-force attacks and broken authentication by limiting the amount of failed login attempts.
+    remaining_lockedouttime = 0 # The variable for the remaining time in seconds that the user will be locked out for. 
+    # If the user has exceeded the maximum login attempts, check if they are still locked out. If they are, set the is_locked_out variable to True and calculate the remaining time in seconds that the user will be locked out for. If they are not locked out, reset the login attempts and lockedout status so the user is not locked out anymore.
     if 'login_attempts' in session and session.get("login_attempts") >= api.config['MAX_LOGIN_ATTEMPTS']:
                lockedout = session.get("lockedout", 0)
                time_since_lockedout = current_time - lockedout
@@ -195,8 +167,10 @@ def home():
                  is_locked_out = True
                  remaining_lockedouttime = int(end_time - time_since_lockedout)
                else:
+                 api.session_interface.regenerate(session)
                  session["login_attempts"] = 0
                  session.pop("lockedout", None)
+    # If the request method is GET, check if the user is locked out. If they are, return an error message. If they are not, retrieve any message from the URL parameters and render the login page with that message. 
     if request.method == "GET":
         if is_locked_out:
             return render_template("index.html", msg=f"Too many login attempts. Please try again later.")
@@ -210,23 +184,17 @@ def home():
     elif request.method == "GET":
             msg = request.args.get("msg", "")
             return render_template("/index.html", msg=msg)
+    # If the request method is POST, check if the user is locked out. If they are, return an error message.
     elif request.method == "POST":
         if is_locked_out:
             msg = f"Too many login attempts. Please try again later in {remaining_lockedouttime} seconds."
-        #current_time = time.time() # The current time in seconds when the user logins.
-        #end_time = 60 
-        # If failed login attempts exceed the maximum limit, lock the user out for the specific time and record the time since the user was locked out.
-        #if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
-            #lockedout = session.get("lockedout", 0)
-            #time_since_lockedout = current_time - lockedout
-            #if time_since_lockedout < end_time:
-             # return redirect(url_for("home", msg=f"Too many login attempts. Please try again later.")) # If the user is still locked out, return the error message. Otherwise, reset the login attempts and lockedout status so the user is not locked out anymore.
+            return render_template("/index.html", msg=msg) # Return an error message to the user if they are locked out due to too many failed login attempts and prevents them from bypassing validation by refrehsing or switiching to signup page.
             
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form["username"] # Retrieve the username from the form data submitted which is used to authenticate the user and check if they are registered in the database.
+        password = request.form["password"] # Retrieve the password from the form data submitted which is used to authenticate the user and check if they are registered in the database.
         #to_email = username
         try:
-            if not isinstance(username, str) or not isinstance(password, str):
+            if not isinstance(username, str) or not isinstance(password, str): # Check if the username and password are strings. If not, raise a TypeError to prevent brutre-force attacks and broken authentication by ensuring that the username and password are valid strings.
                 raise TypeError("Username and password must be strings.")
         except TypeError as inst:
             #logger.error(f"Type errors for username:{username} or password:{password} with {inst.args}")
@@ -235,71 +203,23 @@ def home():
         # If the user is logged in, set the session variables and reset the login attempts and lockedout status. Else, increment the login attempts and check if the user has exceeded the maximum login attempts. If the user has exceeded it then lock the user out. 
         if isLoggedIn:
             api.session_interface.regenerate(session) # Regenerate the session ID to prevent session fixation attacks by creating a new session ID upon successful login.
-            #session['to_email'] = to_email
-            #session['temp_username'] = username
             session["isloggedin"] = True # Set the session variable to indicate that the user has logged in successfully.
             session["username"] = username # Set the session variable to store the username of the logged in user. 
             session["login_attempts"] = 0 # Reset login attempts to 0 upon a successful login
             session.pop("lockedout", None) # Reset lockedout status upon a successful login
-            #send_verification(to_email)
             dbHandler.listFeedback() # Show the feedback after successfully logging in.
-            #return render_template("/success.html", value=username, state=isLoggedIn) 
-            #return redirect(url_for('verify_2fa'))
             return redirect(url_for("successful_login")) # Redirect the user to the login page after successfully logging in
         
         else:
-            session["login_attempts"] = session.get("login_attempts", 0 ) + 1
-            if session.get("login_attempts") >= api.config['MAX_LOGIN_ATTEMPTS']:
+            session["login_attempts"] = session.get("login_attempts", 0 ) + 1 # Increment the login attempts by 1 upon a failed login attempt
+            if session.get("login_attempts") >= api.config['MAX_LOGIN_ATTEMPTS']: # If the user has exceeded the maximum login attempts, lock the user out for a specific time and record the time since the user was locked out.
                 session["lockedout"] = current_time
                 return render_template("/index.html", msg="Too many login attempts. Please try again later.")
             remaining_attempts = api.config["MAX_LOGIN_ATTEMPTS"] - session.get("login_attempts")
             return redirect(url_for("home", msg=f"Invalid username or password. You have {remaining_attempts} attempts remaining."))
     else:
        return render_template("/index.html") # Return the login page if the request method is not GET or POST
-#@api.route("/verifypage.html", methods=['GET', 'POST'])
-#def verify_2fa():
-    temp_user = session.get('temp_username')
-    if not temp_user:
-        return redirect(url_for("home"))
-    error = None
-    if request.method == 'POST':
-        verification_code = request.form.get('verificationcode')
-    user_key = dbHandler.getUSERkey(temp_user)
-    if user_key:
-        totp = pyotp.TOTP(user_key)
-        if verification_code and totp.verify(verification_code):
-            session['isloggedin'] = True
-            session["username"] = temp_user
-            session.pop("temp_username", None)
-            dbHandler.listFeedback()
-            return redirect(url_for("successful_login"))
-        else:
-            error = f"Invalid verification code. Please try again."
-    else:
-        error = f"2fa authentication error"
-        return render_template('verifypage.html', error=error, username=temp_user)
-    return render_template('verifypage.html', username=temp_user)
-
-#@app.route("/verifypage.html", methods=['GET', 'POST'])
-#def generate_verification_code():
-    #to_email = session['to_email']
-    #temp_user = session.get('temp_username')
-    #if not to_email or not temp_user:
-        #return redirect(url_for("home"))
-    #error = None
-    #if request.method == 'POST':
-       # verification_code = request.form['verificationcode']
-        #if check_verification_token(to_email, verification_code):
-          #  session['isloggedin'] = True
-           # session["username"] = temp_user
-           # session.pop("temp_username", None)
-           # print("Successful code")
-           # return redirect(url_for("successful_login"))
-           # #return ('Success')
-        #else:
-           # error = "Invalid verification code. Please try again."
-            #return render_template('verifypage.html', error = error)
-    #return render_template('verifypage.html', email = to_email)
+# Route to handle successful login and ensure that users cannot access the feedback page without logging in first. 
 @api.route("/successful_login", methods=["GET"])
 def successful_login():
     # Check if the user is logged in before redirecting to the feedback page. If the user is not logged in, redirect them to the login page. Prevents users from accessing the feedback page without logging in first.
