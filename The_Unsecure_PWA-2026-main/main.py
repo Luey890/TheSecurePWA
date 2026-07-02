@@ -87,12 +87,12 @@ def addFeedback():
         dbHandler.insertFeedback(feedback) # Insert the feedback into the database using the insertFeedback function from the dbHandler module.
         dbHandler.listFeedback() # List the feedback from the database using the listFeedback function from the dbHandler module. 
         api.jinja_env.cache.clear() # Clear the Jinja2 template cache to ensure that the latest feedback is displayed on the feedback page.
-        #return render_template("/success.html", state=True, value="Back", username=session.get("username"))
-        return render_template("/success.html", state=True, value="Back")
+        return render_template("/success.html", state=True, value=session.get("username"))
+        #return render_template("/success.html", state=True, value="Back")
     else:
         dbHandler.listFeedback() # List the feedback from the database using the listFeedback function from the dbHandler module
         api.jinja_env.cache.clear() # Clear the Jinja2 template cache to ensure that the latest feedback is displayed on the feedback page.
-        return render_template("/success.html", state=True, value="Back", username=session.get("username")) 
+        return render_template("/success.html", state=True, value=session.get("username")) 
         #return redirect(url_for("successful_login"))
 
 

@@ -16,5 +16,5 @@ DELETE FROM feedback WHERE id > 10;
 
 --ALTER TABLE users ADD COLUMN salt TEXT;--
 --ALTER TABLE users ADD COLUMN lockout TIMESTAMP DEFAULT NULL;--
---DELETE From users WHERE id = 55;-->
+--DELETE From users WHERE id = 30;--
 --ALTER TABLE users ADD COLUMN Twofactor_key TEXT;-->
