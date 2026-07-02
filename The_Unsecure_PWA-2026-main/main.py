@@ -2,10 +2,6 @@ import os
 from urllib import response
 from flask import Flask, app,logging, session, url_for, session, render_template, request, redirect, make_response
 from flask_session import Session
-#from flask import render_template
-#from flask import request
-#from flask import redirect
-#from twilio.rest import Client
 import time 
 from pathlib import Path
 from dotenv import load_dotenv
@@ -14,9 +10,7 @@ from flask import jsonify
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
 from flask_limiter import Limiter
-import pyotp
 import user_management as dbHandler
-#from flask_csp.csp import csp_header
 import user_management as sanitiser
 
 api = Flask(__name__) # Create a flask application 
@@ -243,5 +237,4 @@ def rate_limiter(error):
 if __name__ == "__main__":
     api.config["TEMPLATES_AUTO_RELOAD"] = True # Enable template auto-reloading to allow for changes to be reflected without restarting the server.
     api.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0 # Disable caching of static files to ensure that the latest version of the files is always served to the user.
-    api.run(debug=True, host="0.0.0.0", port=5000) # Run the Flask application.
-    #ssl_context="adhoc"
+    api.run(debug=False, host="0.0.0.0", port=5000) # Run the Flask application.
