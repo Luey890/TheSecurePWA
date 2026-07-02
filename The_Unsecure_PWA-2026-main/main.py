@@ -1,6 +1,6 @@
 import os
 from urllib import response
-from flask import Flask, app, logging, session, url_for, session, render_template, request, redirect, make_response
+from flask import Flask, app,logging, session, url_for, session, render_template, request, redirect, make_response
 from flask_session import Session
 #from flask import render_template
 #from flask import request
@@ -34,63 +34,41 @@ import user_management as sanitiser
 # Code snippet for logging a message
 # app.logger.critical("message")
 
-app = Flask(__name__)
-csrf = CSRFProtect()
+api = Flask(__name__)
+csrf = CSRFProtect() # Initialise CSRF protection for the Flask progressive web application to prevent cross-site request forgery attacks by ensuring that requests made to the server are from authenticated users.
 #c = CORS(api)
 #app.config["CORS_HEADERS"] = "Content-Type"
-app.config['SECRET_KEY'] = "UnsecurePWA"
+api.config['SECRET_KEY'] = "UnsecurePWA" # Secret key for session management and cross-site request forgery protection.
 
-app.config["SESSION_TYPE"] = "filesystem"
-app.config['SESSION_FILE_DIR'] = './flask_session/'
+api.config["SESSION_TYPE"] = "filesystem" # The session type has been configured to use the filesystem for storing session data as this allows for better security and scalability compared to using cookies.
+api.config['SESSION_FILE_DIR'] = './flask_session/' # The directory where session files will be stored on the server's filesystem. This is used when the session type is set to "filesystem."
 
-app.config.update (
-    SESSION_COOKIE_SECURE = True, #Only send the cookie over encrypted HTTPS connections if the cookie is marked 'secure', ensuring that attackers cannot intercept cookies over the network when the site is visited using unencrypted HTTP.
+api.config.update (
     SESSION_COOKIE_HTTPONLY = True, #Browsers will not allow Javascript access to cookies marked as "HTTP Only" for security against session fixation by preventing them from being read using Javascript.
     SESSION_COOKIE_SAMESITE = 'Lax', #Prevents cookies from being sent with CSRF-prone requests from external sites, protecting against cross-site request forgery attacks.
 )
  
-#Rate limiting to protect against race conditions and brute-force attacks.
+#Rate limiting to protect against race conditions and brute-force attacks by restricting the amount of requests to prevent overloading.
 limiter = Limiter(
     get_remote_address,
-    app=app,
-    #default_limits=["200 per day", "50 per hour"],
-    #default_limits=["1/5 seconds"],
+    app=api,
     storage_uri="memory://",
 )
-#The max login attempts is set to 3 to prevent brute-force attacks.
-app.config['MAX_LOGIN_ATTEMPTS'] = 3
+#The max login attempts is set to 3 to prevent brute-force attacks by restricting the amount of times someone can fail a login before being locked out.
+api.config['MAX_LOGIN_ATTEMPTS'] = 3
 #def csrf_app():
     #app = Flask(__name__)
     #csrf.init_app(app)
-Session(app)
+Session(api)
 
-csrf.init_app(app)
+csrf.init_app(api)
 #Enable CORS to allow cross-origin requests (needed for CSRF demo in Codespaces)
-CORS(app)
-#TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
-#TWILIO_AUTH_TOKEN= os.environ.get('TWILIO_AUTH_TOKEN')
-#TWILIO_VERIFY_SERVICE = os.environ.get('TWILIO_VERIFY_SERVICE')
-#SENDGRID_API_KEY= os.environ.get('SENDGRID_API_KEY') 
-#client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-#def send_verification(to_email):
-    #verification = client.verify \
-        #.services(TWILIO_VERIFY_SERVICE) \
-        #.verifications \
-        #.create(to=to_email, channel='email')
-    ##print(verification.sid)
+CORS(api)
 
-#def check_verification_token(email, token):
-    #check = client.verify \
-        #.services(TWILIO_VERIFY_SERVICE) \
-        #.verification_checks \
-        #.create(to=email, code=token)    
-    #return check.status == 'approved'     
-#@app.route('/', methods=['POST', 'GET'])
-#@app.route('/index.html', methods=['GET'])
-#Content-security-policy to protect against cross-site scripting, cross-frame scripting and SQL injection
-@app.after_request
+@api.after_request
 def security_headers(response):
         response.headers['X-Frame-Options'] = 'SAMEORIGIN' #Prevents external sites from embedding the progressive web app in an iframe, protecting it from cross-frame scripting.
+        ##Content-security-policy to protect against cross-site scripting, cross-frame scripting and SQL injection
         response.headers['Content-Security-Policy'] = ("base-uri 'self';"
         "default-src 'self';"
         "style-src 'self' https://fonts.googleapis.com;"
@@ -115,31 +93,8 @@ def security_headers(response):
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         return response
-            
 
-
-#@csp_header({
-        #"base-uri": "self",
-        #"default-src": "'self'",
-        #"style-src": "'self' https://fonts.googleapis.com",
-        #"font-src": "'self' https://fonts.gstatic.com",
-        #"style-src-elem": "'self' https://fonts.googleapis.com",
-        #"script-src": "'self'",
-        #"script-src-elem": "'self'",
-        #"img-src": "'self '",
-        #"media-src": "'self'",
-        #"font-src": "self",
-        #"object-src": "'self'",
-       # "child-src": "'self'",
-       # "connect-src": "'self'",
-       # "worker-src": "'self'",
-        #"report-uri": "/csp_report",
-       # "frame-ancestors": "'none'",
-       # "form-action": "'self'",
-       # "frame-src": "'none'",
-      #}) 
-
-@app.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+@api.route("/success.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def addFeedback():
     # If user is not logged in then redirect them back to the homepage to prevent users from being able to access the feedback page without authentication.
     if not session.get("isloggedin"):
@@ -151,17 +106,17 @@ def addFeedback():
         feedback = request.form["feedback"]
         dbHandler.insertFeedback(feedback)
         dbHandler.listFeedback()
-        app.jinja_env.cache.clear()
+        api.jinja_env.cache.clear()
         #return render_template("/success.html", state=True, value="Back", username=session.get("username"))
         return render_template("/success.html", state=True, value="Back")
     else:
         dbHandler.listFeedback()
-        app.jinja_env.cache.clear()
+        api.jinja_env.cache.clear()
         return render_template("/success.html", state=True, value="Back", username=session.get("username"))
         #return redirect(url_for("successful_login"))
 
 
-@app.route("/signup.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+@api.route("/signup.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def signup():
     # Check if user is already logged in to prevent the user from accessing the signup page unless they logout.
     #if request.method == "GET" and session.get("isloggedin") is True:
@@ -177,8 +132,7 @@ def signup():
         password = request.form.get("password")
         DoB = request.form.get("dob")
         try:
-            #_ = sanitiser.check_password(password).hex()
-            _ = sanitiser.check_password(password).hex()
+            _ = sanitiser.check_password(password).hex() 
             if not sanitiser.simple_check_password(password):
                 raise ValueError("Password does not meet security requirements.")
         except TypeError:
@@ -197,7 +151,8 @@ def signup():
         #Twofactor_key = pyotp.random_base32() # Generate two-factor authentication key for the user
         dbHandler.insertUser(username, password, DoB,) #Twofactor_key=Twofactor_key)
         #provisioning_url = pyotp.totp.TOTP(Twofactor_key).provisioning_uri(name=username, issuer_name="2fa App")
-        session.clear() # Clear the old cookie to prevent session fixation attacks.
+        api.session_interface.regenerate(session)
+        #session.clear() # Clear the old cookie to prevent session fixation attacks.
         #return render_template("verifypage.html", Twofactor_key=Twofactor_key, qr_url=provisioning_url, username=username)
     #else:
       #return render_template("/signup.html")
@@ -210,31 +165,63 @@ def signup():
     
         
 
-@app.route("/index.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
-@app.route("/", methods=["POST", "GET"])
+@api.route("/index.html", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+@api.route("/", methods=["POST", "GET"])
 @limiter.limit("5 per minute", methods=["POST"])
 def home():
+    current_time = time.time() # The current time in seconds when the user logins.
+    end_time = 60 # The time in seconds that the user will be locked out for.
     # Simple Dynamic menu
+    #if request.method == "GET":
+        #if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
+            #lockedout = session.get("lockedout", 0)
+            #if time_since_lockedout < end_time:
+             #return redirect(url_for("home", msg=f"Too many login attempts. Please try again later."))
+            #else:
+               # session["login_attempts"] = 0
+               # session.pop("lockedout", None)
+            #url = request.args.get("url", "")
+            #if url and url not in ["/", "/index.html"]:
+              #  return redirect(url, code=302)
     if request.method == "GET" and request.args.get("url"):
-        url = request.args.get("url", "")
-        return redirect(url, code=302)
+            url = request.args.get("url", "")
+            return redirect(url, code=302)
+    is_locked_out = False
+    remaining_lockedouttime = 0
+    if 'login_attempts' in session and session.get("login_attempts") >= api.config['MAX_LOGIN_ATTEMPTS']:
+               lockedout = session.get("lockedout", 0)
+               time_since_lockedout = current_time - lockedout
+               if time_since_lockedout < end_time:
+                 is_locked_out = True
+                 remaining_lockedouttime = int(end_time - time_since_lockedout)
+               else:
+                 session["login_attempts"] = 0
+                 session.pop("lockedout", None)
+    if request.method == "GET":
+        if is_locked_out:
+            return render_template("index.html", msg=f"Too many login attempts. Please try again later.")
+        else:
+            msg = request.args.get("msg", "")
+        return render_template("index.html", msg=msg)
+        
+        #msg = request.args.get("msg", "")
+        #return render_template("index.html", msg=msg)
     # Pass message to front end
     elif request.method == "GET":
-        msg = request.args.get("msg", "")
-        return render_template("/index.html", msg=msg)
+            msg = request.args.get("msg", "")
+            return render_template("/index.html", msg=msg)
     elif request.method == "POST":
-        current_time = time.time() # The current time in seconds when the user logins.
-        end_time = 60 # The time in seconds that the user will be locked out for.
+        if is_locked_out:
+            msg = f"Too many login attempts. Please try again later in {remaining_lockedouttime} seconds."
+        #current_time = time.time() # The current time in seconds when the user logins.
+        #end_time = 60 
         # If failed login attempts exceed the maximum limit, lock the user out for the specific time and record the time since the user was locked out.
-        if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
-            lockedout = session.get("lockedout", 0)
-            time_since_lockedout = current_time - lockedout
-            # If the user is still locked out, return the error message. Otherwise, reset the login attempts and lockedout status so the user is not locked out anymore.
-            if time_since_lockedout < end_time:
-             return render_template("/index.html", msg=f"Too many login attempts. Please try again later.")
-            else:
-                session["login_attempts"] = 0
-                session.pop("lockedout", None)
+        #if 'login_attempts' in session and session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
+            #lockedout = session.get("lockedout", 0)
+            #time_since_lockedout = current_time - lockedout
+            #if time_since_lockedout < end_time:
+             # return redirect(url_for("home", msg=f"Too many login attempts. Please try again later.")) # If the user is still locked out, return the error message. Otherwise, reset the login attempts and lockedout status so the user is not locked out anymore.
+            
         username = request.form["username"]
         password = request.form["password"]
         #to_email = username
@@ -247,7 +234,7 @@ def home():
         isLoggedIn = dbHandler.retrieveUsers(username, password)
         # If the user is logged in, set the session variables and reset the login attempts and lockedout status. Else, increment the login attempts and check if the user has exceeded the maximum login attempts. If the user has exceeded it then lock the user out. 
         if isLoggedIn:
-            session.clear() # Clear the old cookie completely to prevent session fixation attacks
+            api.session_interface.regenerate(session) # Regenerate the session ID to prevent session fixation attacks by creating a new session ID upon successful login.
             #session['to_email'] = to_email
             #session['temp_username'] = username
             session["isloggedin"] = True # Set the session variable to indicate that the user has logged in successfully.
@@ -262,15 +249,14 @@ def home():
         
         else:
             session["login_attempts"] = session.get("login_attempts", 0 ) + 1
-            if session.get("login_attempts") >= app.config['MAX_LOGIN_ATTEMPTS']:
+            if session.get("login_attempts") >= api.config['MAX_LOGIN_ATTEMPTS']:
                 session["lockedout"] = current_time
                 return render_template("/index.html", msg="Too many login attempts. Please try again later.")
-            remaining_attempts = app.config["MAX_LOGIN_ATTEMPTS"] - session.get("login_attempts")
+            remaining_attempts = api.config["MAX_LOGIN_ATTEMPTS"] - session.get("login_attempts")
             return redirect(url_for("home", msg=f"Invalid username or password. You have {remaining_attempts} attempts remaining."))
     else:
-        #session.clear()
-        return redirect(url_for("home")) # Return the login page if the request method is not GET or POST
-#@app.route("/verifypage.html", methods=['GET', 'POST'])
+       return render_template("/index.html") # Return the login page if the request method is not GET or POST
+#@api.route("/verifypage.html", methods=['GET', 'POST'])
 #def verify_2fa():
     temp_user = session.get('temp_username')
     if not temp_user:
@@ -314,14 +300,14 @@ def home():
            # error = "Invalid verification code. Please try again."
             #return render_template('verifypage.html', error = error)
     #return render_template('verifypage.html', email = to_email)
-@app.route("/successful_login", methods=["GET"])
+@api.route("/successful_login", methods=["GET"])
 def successful_login():
     # Check if the user is logged in before redirecting to the feedback page. If the user is not logged in, redirect them to the login page. Prevents users from accessing the feedback page without logging in first.
     if session.get("isloggedin") is not True:  
         return redirect(url_for("home"))
     return render_template("/success.html", value=session.get("username"), state=True)
 # Logout route to clear the session data and log the user out
-@app.route("/logout", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
+@api.route("/logout", methods=["POST", "GET", "PUT", "PATCH", "DELETE"])
 def logout():
      session.clear() # Clear the session data to log the user out
      #session.modified = True 
@@ -329,13 +315,13 @@ def logout():
      #return redirect(url_for("home")) # Redirect the user to the login page after logging out
      response.set_cookie('session', '', expires=0, max_age=0)  
      return response
-#Rate limitation
-@app.errorhandler(429)
+#Rate limitation error handler to handle 429 Too Many Requests errors and return a custom error message to the user when they exceed the rate limit, preventing race_conditions and brute-force attacks.
+@api.errorhandler(429)
 def rate_limiter(error):
-    return redirect(url_for("home", msg="Too many requests."))
+    return render_template("/index.html", msg="Too many requests. Please try again later."), 429
 
 if __name__ == "__main__":
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    api.config["TEMPLATES_AUTO_RELOAD"] = True # Enable template auto-reloading to allow for changes to be reflected without restarting the server.
+    api.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0 # Disable caching of static files to ensure that the latest version of the files is always served to the user.
+    api.run(debug=True, host="0.0.0.0", port=5000) # Run the Flask application.
     #ssl_context="adhoc"

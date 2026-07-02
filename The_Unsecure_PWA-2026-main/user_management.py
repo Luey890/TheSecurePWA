@@ -80,14 +80,13 @@ def retrieveUsers(username, password):
     con = sql.connect(db_path)
     cur = con.cursor()
     #cur.execute(f"SELECT * FROM users WHERE username = '{username}'")
-    cur.execute("SELECT * FROM users WHERE username = ?", (username, )) #SQL and Parameter is sent off seperately to the database driver.
+    cur.execute("SELECT * FROM users WHERE username = ?", (username, )) #SQL and Parameter is sent off seperately to the database driver, preventing SQL injection.
     row = cur.fetchone()
     con.close()
     if row is None:
       return False
     db_hashed_password = row[2]
-
-
+    
     if isinstance(db_hashed_password, str):
            db_hashed_password = db_hashed_password.encode('utf-8')
 
@@ -151,7 +150,7 @@ def insertFeedback(feedback):
     con = sql.connect(db_path)
     cur = con.cursor()
     #cur.execute(f"INSERT INTO feedback (feedback) VALUES ('{feedback}')")
-    cur.execute("INSERT INTO feedback (feedback) VALUES (?)", (feedback,))
+    cur.execute("INSERT INTO feedback (feedback) VALUES (?)", (feedback,)) #SQL and Parameter is sent off seperately to the database driver, preventing SQL injection.
     con.commit()
     con.close()
 
